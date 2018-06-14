@@ -1,0 +1,8 @@
+ippSetCpuFeatures
+ippSetNumThreads
+ippiResizeGetSize_8u
+ippsMalloc_8u
+ippiResizeLinearInit_8u
+ippiResizeGetBufferSize_8u
+ippiResizeLinear_8u_C1R
+ippsFree
