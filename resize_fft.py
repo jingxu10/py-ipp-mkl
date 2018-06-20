@@ -85,9 +85,9 @@ def fft(img_data):
 	mkl.DftiCommitDescriptor(hand)
 
 	# Load image data from 8U to double array
-	for i in range(0, img_data.shape[0]):
-		for j in range(0, img_data.shape[1]):
-			x_real[i*img_data.shape[1]+j] = c_double(math.pow(-1, i+j) * img_data[i][j])
+	for i in range(0, height):
+		for j in range(0, width):
+			x_real[i*width+j] = c_double(math.pow(-1, i+j) * img_data[i][j])
 
 	# Perform FFT calculation
 	mkl.DftiComputeForward(hand, x_real, x_out)
@@ -98,7 +98,7 @@ def fft(img_data):
 			if j < width/2+1:
 				val = MKL_Complex16()
 				val.real = x_out[i*int(width/2+1)+j].real
-				val.imag = x_out[i*int(width/2+1)+j].imag;
+				val.imag = x_out[i*int(width/2+1)+j].imag
 				x_fft[i][j] = math.log(math.sqrt(val.real*val.real+val.imag*val.imag))
 			else:
 				if i == 0:

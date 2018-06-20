@@ -38,18 +38,10 @@
 * limitations under the License.
 *******************************************************************************/
 
-#include <iostream>
-#include <string>
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
-#include <ippcore.h>
 #include <ippi.h>
 #include <ipps.h>
-#include <ippcc.h>
-#include <ippcv.h>
 #include <mkl.h>
 
 using namespace cv;
@@ -57,101 +49,98 @@ using namespace std;
 
 void resize(const uchar* img_src, int src_height, int src_width, uchar* img_dst, int dst_height, int dst_width)
 {
-    // ippSetCpuFeatures(cpuFeatures);
-    // ippSetNumThreads(numThr);
+	// ippSetCpuFeatures(cpuFeatures);
+	// ippSetNumThreads(numThr);
 
-    IppiSize ssize = {src_width, src_height};
-    IppiRect srect = {0, 0, src_width, src_height};
-    IppiSize dsize = {dst_width, dst_height};
-    IppiRect drect = {0, 0, dst_width, dst_height};
+	IppiSize ssize = {src_width, src_height};
+	IppiRect srect = {0, 0, src_width, src_height};
+	IppiSize dsize = {dst_width, dst_height};
+	IppiRect drect = {0, 0, dst_width, dst_height};
 
-    int specSize = 0;
-    int initBufSize = 0;
-    ippiResizeGetSize_8u(ssize, dsize, ippLinear, 0, &specSize, &initBufSize);
-    IppiResizeSpec_32f* pSpec = (IppiResizeSpec_32f*)ippsMalloc_8u(specSize);
-    ippiResizeLinearInit_8u(ssize, dsize, pSpec);
-    int bufSize = 0;
-    ippiResizeGetBufferSize_8u(pSpec, dsize, 3, &bufSize);
-    Ipp8u* pBuffer = ippsMalloc_8u(bufSize);
-    IppiPoint p = {0, 0};
-    ippiResizeLinear_8u_C1R((const Ipp8u*)img_src, src_width, (Ipp8u*)img_dst, dst_width, p, dsize, ippBorderRepl, 0, pSpec, pBuffer);
-    ippsFree(pSpec);
-    ippsFree(pBuffer);
+	int specSize = 0;
+	int initBufSize = 0;
+	ippiResizeGetSize_8u(ssize, dsize, ippLinear, 0, &specSize, &initBufSize);
+	IppiResizeSpec_32f* pSpec = (IppiResizeSpec_32f*)ippsMalloc_8u(specSize);
+	ippiResizeLinearInit_8u(ssize, dsize, pSpec);
+	int bufSize = 0;
+	ippiResizeGetBufferSize_8u(pSpec, dsize, 3, &bufSize);
+	Ipp8u* pBuffer = ippsMalloc_8u(bufSize);
+	IppiPoint p = {0, 0};
+	ippiResizeLinear_8u_C1R((const Ipp8u*)img_src, src_width, (Ipp8u*)img_dst, dst_width, p, dsize, ippBorderRepl, 0, pSpec, pBuffer);
+	ippsFree(pSpec);
+	ippsFree(pBuffer);
 }
 
 void fft(const uchar* img_data, int height, int width, uchar* img_fft_data)
 {
 	/* Init tmp resourses */
-    double *x_real = (double*)mkl_malloc(width*height*sizeof(double), 64);
-    double *x_fft = (double*)mkl_malloc(width*height*sizeof(double), 64);
-    MKL_Complex16 *x_out = (MKL_Complex16*)mkl_malloc((width/2+1)*height*sizeof(MKL_Complex16), 64);
+	double *x_real = (double*)mkl_malloc(width*height*sizeof(double), 64);
+	double *x_fft = (double*)mkl_malloc(width*height*sizeof(double), 64);
+	MKL_Complex16 *x_out = (MKL_Complex16*)mkl_malloc((width/2+1)*height*sizeof(MKL_Complex16), 64);
 
 	/* Configure FFT handler */
-    DFTI_DESCRIPTOR_HANDLE hand = 0;
-    MKL_LONG N[2];
-    N[0] = height;
-    N[1] = width;
-    DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_REAL, 2, N);
-    DftiSetValue(hand, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
-    DftiSetValue(hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
-    MKL_LONG rs[3];
-    rs[0] = 0;
-    rs[1] = width;
-    rs[2] = 1;
-    MKL_LONG cs[3];
-    cs[0] = 0;
-    cs[1] = width/2+1;
-    cs[2] = 1;
-    DftiSetValue(hand, DFTI_INPUT_STRIDES, rs);
-    DftiSetValue(hand, DFTI_OUTPUT_STRIDES, cs);
-    DftiSetValue(hand, DFTI_FORWARD_SCALE, (double)1.0/(width*height));
-    DftiCommitDescriptor(hand);
+	DFTI_DESCRIPTOR_HANDLE hand = 0;
+	MKL_LONG N[2];
+	N[0] = height;
+	N[1] = width;
+	DftiCreateDescriptor(&hand, DFTI_DOUBLE, DFTI_REAL, 2, N);
+	DftiSetValue(hand, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
+	DftiSetValue(hand, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX);
+	MKL_LONG rs[3];
+	rs[0] = 0;
+	rs[1] = width;
+	rs[2] = 1;
+	MKL_LONG cs[3];
+	cs[0] = 0;
+	cs[1] = width/2+1;
+	cs[2] = 1;
+	DftiSetValue(hand, DFTI_INPUT_STRIDES, rs);
+	DftiSetValue(hand, DFTI_OUTPUT_STRIDES, cs);
+	DftiSetValue(hand, DFTI_FORWARD_SCALE, (double)1.0/(width*height));
+	DftiCommitDescriptor(hand);
 
-    /* Load image data from 8U to double array */
-    for (int i = 0; i < height; ++i)
-    {
-        for (int j = 0; j < width; ++j)
-        {
-            // method 1: 输入数据乘以(-1)^（i+j），即可中心化
-            x_real[i*width+j] = pow(-1, i + j) * (double)img_data[i*width+j];
-        }
-    }
+	/* Load image data from 8U to double array */
+	for (int i = 0; i < height; ++i)
+	{
+		for (int j = 0; j < width; ++j)
+			x_real[i*width+j] = pow(-1, i + j) * (double)img_data[i*width+j];
+	}
 
 	/* Perform FFT calculation */
 	DftiComputeForward(hand, x_real, x_out);
 
 	/* Extend compressed FFT results into full matrix */
 	double min = numeric_limits<double>::max();
-    double max = 0;
-    for (int j = 0; j < width; j++)
-    {
-    	for (int i = 0; i < height; i++)
-        {
-            MKL_Complex16 val;
-            if(j < width/2+1)
-            {
-                val.real = x_out[i*(width/2+1)+j].real;
-                val.imag = x_out[i*(width/2+1)+j].imag;
-                double amp = log(sqrt(val.real*val.real+val.imag*val.imag));
-                x_fft[i*width+j] = amp;
-                if(amp < min)
-                    min = amp;
-                if(amp > max)
-                    max = amp;
-            }
-            else
-            {
-                if(i == 0)
+	double max = 0;
+	for (int j = 0; j < width; j++)
+	{
+		for (int i = 0; i < height; i++)
+		{
+			MKL_Complex16 val;
+			if(j < width/2+1)
+			{
+				val.real = x_out[i*(width/2+1)+j].real;
+				val.imag = x_out[i*(width/2+1)+j].imag;
+				double amp = log(sqrt(val.real*val.real+val.imag*val.imag));
+				x_fft[i*width+j] = amp;
+				if(amp < min)
+					min = amp;
+				if(amp > max)
+					max = amp;
+			}
+			else
+			{
+				if(i == 0)
 					x_fft[j] = x_fft[width-j];
-                else
+				else
 					x_fft[i*width+j] = x_fft[(height-i)*width+width-j];
-            }
-        }
-    }
+			}
+		}
+	}
 
 	/* Normalize FFT results for visualization */
 	for (int i = 0; i < height*width; i++)
-		img_fft_data[i] = /*img_fft_data[i]>0?255:0;*/ 255.0 * (x_fft[i] - min) / (double)(max-min);
+		img_fft_data[i] = 255.0 * (x_fft[i] - min) / (double)(max-min);
 
 	/* Release tmp resources */
 	mkl_free(x_out);
