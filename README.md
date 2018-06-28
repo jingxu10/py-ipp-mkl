@@ -80,3 +80,4 @@ By default, Intel&reg; MKL stores the result in CCE format, please refer to <htt
 # Notes
 1. Since Python2 also provides ctypes, it is possible to call Intel&reg; IPP / Intel&reg; MKL API functions in Python2, as well.
 2. Definitions of several structure types in Intel&reg; IPP and Intel&reg; MKL, like *IppiResizeSpec_32f* (in line 71, *resize_fft.cpp*), is hidden to developers. When dealing with this kind of structure types, you can simply consider it as a general memory block. There's no need to define this kind of structure types in Python.
+3. Make sure to set environment variable "LD_LIBRARY_PATH" to be paths of directories that contains all of necessary dynamic library binaries.
